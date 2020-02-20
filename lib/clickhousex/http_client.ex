@@ -18,14 +18,7 @@ defmodule Clickhousex.HTTPClient do
   defp send_p(query, request, base_address, database, opts) do
     command = parse_command(query)
 
-    post_body =
-      case query.type do
-        :select ->
-          [request.post_data, " FORMAT ", @codec.response_format]
-
-        _ ->
-          [request.post_data]
-      end
+    post_body = maybe_append_format(query, request)
 
     http_opts =
       Keyword.put(opts, :params, %{
@@ -37,24 +30,22 @@ defmodule Clickhousex.HTTPClient do
            HTTPoison.post(base_address, post_body, @req_headers, http_opts),
          {:command, :selected} <- {:command, command},
          {:ok, %{column_names: column_names, rows: rows}} <- @codec.decode(body) do
-      {command, column_names, rows}
+      {:ok, command, column_names, rows}
     else
-      {:command, :updated} ->
-        {:updated, 1}
-
-      {:ok, response} ->
-        {:error, response.body}
-
-      {:error, error} ->
-        {:error, error.reason}
+      {:command, :updated} -> {:ok, :updated, 1}
+      {:ok, response} -> {:error, response.body}
+      {:error, error} -> {:error, error.reason}
     end
   end
 
-  defp parse_command(%Query{type: :select}) do
-    :selected
+  defp parse_command(%Query{type: :select}), do: :selected
+  defp parse_command(_), do: :updated
+
+  defp maybe_append_format(%Query{type: :select}, request) do
+    [request.post_data, " FORMAT ", @codec.response_format()]
   end
 
-  defp parse_command(_) do
-    :updated
+  defp maybe_append_format(_, request) do
+    [request.post_data]
   end
 end

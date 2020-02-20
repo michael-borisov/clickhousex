@@ -19,8 +19,7 @@ defmodule Clickhousex.Query do
             columns: []
 
   def new(statement) do
-    %__MODULE__{statement: statement}
-    |> DBConnection.Query.parse([])
+    DBConnection.Query.parse(%__MODULE__{statement: statement}, [])
   end
 end
 
@@ -40,9 +39,9 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
       |> String.codepoints()
       |> Enum.count(fn s -> s == "?" end)
 
-    query = %{query | type: query_type(statement)}
+    query_type = query_type(statement)
 
-    %{query | param_count: param_count}
+    %{query | param_count: param_count, type: query_type}
   end
 
   def describe(query, _opts) do
@@ -86,13 +85,11 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   end
 
   defp query_type(statement) do
-    with {:select, false} <- {:select, Regex.match?(@select_query_regex, statement)},
-         {:insert, false} <- {:insert, Regex.match?(@insert_query_regex, statement)},
-         {:alter, false} <- {:alter, Regex.match?(@alter_query_regex, statement)} do
-      :unknown
-    else
-      {statement_type, true} ->
-        statement_type
+    cond do
+      Regex.match?(@select_query_regex, statement) -> :select
+      Regex.match?(@insert_query_regex, statement) -> :insert
+      Regex.match?(@alter_query_regex, statement) -> :alter
+      true -> :update
     end
   end
 end
