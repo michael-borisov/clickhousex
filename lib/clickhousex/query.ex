@@ -36,7 +36,6 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
   def parse(%{statement: statement} = query, _opts) do
     param_count =
       statement
-      |> IO.iodata_to_binary()
       |> String.codepoints()
       |> Enum.count(fn s -> s == "?" end)
 

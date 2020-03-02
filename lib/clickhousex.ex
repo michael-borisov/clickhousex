@@ -54,7 +54,7 @@ defmodule Clickhousex do
   @spec query(DBConnection.conn(), binary(), list, Keyword.t()) ::
           {:ok, Clickhousex.Result.t()} | {:error, Exception.t()}
   def query(conn, statement, params, opts \\ []) do
-    query = %Query{name: "", statement: statement}
+    query = %Query{name: "", statement: IO.iodata_to_binary(statement)}
 
     with {:ok, _, result} <- DBConnection.prepare_execute(conn, query, params, opts) do
       {:ok, result}
