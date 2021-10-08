@@ -49,7 +49,7 @@ defmodule Clickhousex.Codec.Values do
         values
 
       _ ->
-        "[" <> values <> "]"
+        ["[", values, "]"]
     end
   end
 
@@ -84,7 +84,7 @@ defmodule Clickhousex.Codec.Values do
       |> DateTime.to_iso8601()
       |> String.replace("Z", "")
 
-    "'#{iso_date}'"
+    ["'", iso_date, "'"]
   end
 
   defp encode_param(_query, %NaiveDateTime{} = naive_datetime) do
@@ -93,22 +93,59 @@ defmodule Clickhousex.Codec.Values do
       |> NaiveDateTime.truncate(:second)
       |> NaiveDateTime.to_iso8601()
 
-    "'#{naive}'"
+    ["'", naive, "'"]
   end
 
   defp encode_param(_query, %Date{} = date) do
-    "'#{Date.to_iso8601(date)}'"
+    ["'", Date.to_iso8601(date), "'"]
   end
 
   defp encode_param(_query, param) do
-    "'" <> escape(param) <> "'"
+    ["'", escape(param), "'"]
   end
 
   defp escape(s) do
-    s
-    |> String.replace("_", "\_")
-    |> String.replace("'", "''")
-    |> String.replace("%", "\%")
-    |> String.replace("\\", "\\\\")
+    to_iodata(s, 0, s, [])
+  end
+
+  ### ESCAPING logic is based on https://github.com/elixir-plug/plug/blob/master/lib/plug/html.ex#L41-L80. Probably the fastest way to escape strings in Elixir
+  escapes = [
+    {?_, "\_"},
+    {?', "''"},
+    {?%, "\%"},
+    {?\\, "\\\\"}
+  ]
+
+  for {match, insert} <- escapes do
+    defp to_iodata(<<unquote(match), rest::bits>>, skip, original, acc) do
+      to_iodata(rest, skip + 1, original, [acc | unquote(insert)])
+    end
+  end
+
+  defp to_iodata(<<_char, rest::bits>>, skip, original, acc) do
+    to_iodata(rest, skip, original, acc, 1)
+  end
+
+  defp to_iodata(<<>>, _skip, _original, acc) do
+    acc
+  end
+
+  for {match, insert} <- escapes do
+    defp to_iodata(<<unquote(match), rest::bits>>, skip, original, acc, len) do
+      part = binary_part(original, skip, len)
+      to_iodata(rest, skip + len + 1, original, [acc, part | unquote(insert)])
+    end
+  end
+
+  defp to_iodata(<<_char, rest::bits>>, skip, original, acc, len) do
+    to_iodata(rest, skip, original, acc, len + 1)
+  end
+
+  defp to_iodata(<<>>, 0, original, _acc, _len) do
+    original
+  end
+
+  defp to_iodata(<<>>, skip, original, acc, len) do
+    [acc | binary_part(original, skip, len)]
   end
 end
