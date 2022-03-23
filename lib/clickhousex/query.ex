@@ -86,6 +86,7 @@ defimpl DBConnection.Query, for: Clickhousex.Query do
 
   defp query_type(statement) do
     cond do
+      String.starts_with?(statement, "INSERT") -> :insert
       Regex.match?(@select_query_regex, statement) -> :select
       Regex.match?(@insert_query_regex, statement) -> :insert
       Regex.match?(@alter_query_regex, statement) -> :alter
