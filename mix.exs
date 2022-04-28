@@ -26,7 +26,7 @@ defmodule Clickhousex.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:db_connection, "~> 2.2"},
+      {:db_connection, "~> 2.4"},
       {:httpoison, "~> 1.5"},
       {:jason, "~> 1.3"},
       {:ex_doc, "~> 0.19", only: :dev},
