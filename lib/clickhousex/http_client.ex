@@ -7,11 +7,12 @@ defmodule Clickhousex.HTTPClient do
   @req_headers [{"Content-Type", "text/plain"}]
 
   def send(query, request, base_address, timeout, nil, _password, database) do
-    send_p(query, request, base_address, database, timeout: timeout, recv_timeout: timeout)
+    opts = [hackney: [pool: :clickhouse_pool], timeout: timeout, recv_timeout: timeout]
+    send_p(query, request, base_address, database, opts)
   end
 
   def send(query, request, base_address, timeout, username, password, database) do
-    opts = [hackney: [basic_auth: {username, password}], timeout: timeout, recv_timeout: timeout]
+    opts = [hackney: [pool: :clickhouse_pool, basic_auth: {username, password}], timeout: timeout, recv_timeout: timeout]
     send_p(query, request, base_address, database, opts)
   end
 
