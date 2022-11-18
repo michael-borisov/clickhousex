@@ -104,6 +104,11 @@ defmodule Clickhousex.Codec.Values do
     ["'", escape(param), "'"]
   end
 
+  defp escape(s) when is_map(s) do
+    m = Jason.encode!(s)
+    to_iodata(m, 0, m, [])
+  end
+
   defp escape(s) do
     to_iodata(s, 0, s, [])
   end
