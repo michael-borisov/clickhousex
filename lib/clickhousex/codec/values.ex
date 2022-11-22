@@ -105,8 +105,7 @@ defmodule Clickhousex.Codec.Values do
   end
 
   defp escape(s) when is_map(s) do
-    m = Jason.encode!(s)
-    to_iodata(m, 0, m, [])
+    Jason.encode_to_iodata!(s)
   end
 
   defp escape(s) do
